@@ -26,6 +26,7 @@ class CarEnv:
         self.history_length = args.history_length
         self.is_simulator = args.simulator
         self.add_velocity = args.add_velocity
+        self.add_pose = args.add_pose
         rospy.init_node('rl_driver')
         self.sensors = Sensors(is_simulator=args.simulator, use_back_sensors=args.use_back_sensors)
         self.control = Drive(self.sensors, is_simulator=args.simulator)
@@ -33,7 +34,7 @@ class CarEnv:
         time.sleep(4)
 
         # available actions
-        self.action_set = [0, 1, 2, 3]
+        self.action_set = [0, 1, 2, 3, 4, 5, 6]
 
         self.game_number = 0
         self.step_number = 0
@@ -90,8 +91,8 @@ class CarEnv:
             self.control.lightly_left()
             reward = 0.01
         elif action == 6:
-            self.control.stop()
-            reward = -0.01
+            self.control.forward()
+            reward = -0.02
             self.car_stop_count += 1
         else:
             raise ValueError('`action` should be between 0 and ' + str(len(self.action_set)-1))
@@ -128,20 +129,38 @@ class CarEnv:
         current_data = list(self.sensors.get_lidar_ranges())
         if self.add_velocity:
             current_data.append(self.sensors.get_car_linear_velocity())
+        if self.add_pose:  # `x, y, yaw` 추가
+            x, y, yaw = self.sensors.get_car_pose()
+            current_data.extend([x, y, yaw])  
         return current_data
 
 
     def get_state_size(self):
-        if self.add_velocity:
-            return len(self.state.get_data()[0])
+        state_data = self.state.get_data()  # get_data() 호출 후 변수에 저장
+        
+        if isinstance(state_data, dict):  #딕셔너리 형태인지 확인
+            return len(state_data["lidar"])  # 'lidar' 키를 사용하여 데이터 크기 반환
         else:
-            return len(self.state.get_data())
+            return len(state_data[0])  # 기존 방식 유지 (리스트일 경우)
+
 
     def get_num_actions(self):
         return len(self.action_set)
 
     def get_state(self):
-        return self.state
+        state_dict = {
+            "lidar": np.array(self.sensors.get_lidar_ranges(), dtype=np.float32),
+            "velocity": np.array(self.sensors.get_car_linear_velocity(), dtype=np.float32),
+        }
+        if self.add_pose:  # `x, y, yaw` 추가
+            x, y, yaw = self.sensors.get_car_pose()
+            state_dict.update({
+                "x": np.array(x, dtype=np.float32),
+                "y": np.array(y, dtype=np.float32),
+                "yaw": np.array(yaw, dtype=np.float32)
+            })
+        return state_dict
+
     
     def get_game_number(self):
         return self.game_number

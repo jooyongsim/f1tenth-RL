@@ -32,7 +32,7 @@ parser.add_argument("--gamma", type=float, default=0.98, help="""gamma [0, 1] is
                                 A factor of 0 will make the agent consider only immediate reward, a factor approaching 1 will make it strive for a long-term high reward""")
 parser.add_argument("--epsilon", type=float, default=1, help="]0, 1]for epsilon greedy train")
 parser.add_argument("--epsilon-decay", type=float, default=0.99994, help="]0, 1] every step epsilon = epsilon * decay, in order to decrease constantly")
-parser.add_argument("--epsilon-min", type=float, default=0.1, help="epsilon with decay doesn't fall below epsilon min")
+parser.add_argument("--epsilon-min", type=float, default=0.000000001, help="epsilon with decay doesn't fall below epsilon min")
 parser.add_argument("--batch-size", type=float, default=32, help="size of the batch used in gradient descent")
 
 parser.add_argument("--observation-steps", type=int, default=500, help="train only after this many steps (1 step = [history-length] frames)")
@@ -71,6 +71,8 @@ parser.add_argument("--logging", type=bool, default=True, help="enable tensorboa
 parser.add_argument("--env-logging", type=bool, default=False, help="log state, action, reward of every step to build a dataset for later use")
 parser.add_argument("--gamepad", type=bool, default=False, help="log state, action, reward of every step to build a dataset for later use")
 parser.add_argument("--show-monitor", type=bool, default=False, help="show a GUI with car status information")
+#pose add
+parser.add_argument("--add-pose", type=bool, default=True, help="if true, it adds the (x, y, yaw) to the state (the NN is extended)")
 args = parser.parse_args()
 
 print('Arguments: ', (args))
@@ -121,20 +123,7 @@ def stop_handler():
   global stop
   global pause
   while not stop:
-    user_input = input()
-    if user_input == 'q':
-      print("Stopping...")
-      stop = True
-    if user_input == 'r':
-      print("Resetting simulator position...")
-      environment.control.reset_simulator()
-    if user_input == 'pause':
-      print("pause...")
-      pause = True
-    if user_input == 'resume':
-      print("...resume")
-      pause = False
-
+    time.sleep(0.1)  #stop until keyboard input x
 process = Thread(target=stop_handler)
 process.daemon = True
 process.start()
@@ -174,6 +163,30 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
             else:
                 epsilon = eval_with_epsilon
 
+            # state_data가 State 객체이면 get_data() 호출, 아니면 그대로 사용
+            state_data_list = [
+                sample.old_state.get_data() if isinstance(sample.old_state, State) else sample.old_state
+                for sample in batch
+            ]
+            
+            # 데이터 크기 정규화 (history_length에 맞춰 확장
+            for state_data in state_data_list:
+                for key in ["lidar", "velocity", "x", "y", "yaw"]:
+                    state_data[key] = np.asarray(state_data[key])  #  NumPy 배열 변환
+                    if state_data[key].ndim == 0 or state_data[key].size == 1:  #  단일 값이면 history_length 크기로 확장
+                       state_data[key] = np.tile(state_data[key], (args.history_length,))
+                       
+            state_dict = {
+                "lidar": np.asarray([state["lidar"] for state in state_data_list]).reshape((-1, environment.get_state_size(), args.history_length)),
+                "velocity": np.asarray([state["velocity"] for state in state_data_list]).reshape((-1, 1, args.history_length)),
+                "x": np.asarray([state["x"] for state in state_data_list]).reshape((-1, 1, args.history_length)),
+                "y": np.asarray([state["y"] for state in state_data_list]).reshape((-1, 1, args.history_length)),
+                "yaw": np.asarray([state["yaw"] for state in state_data_list]).reshape((-1, 1, args.history_length))
+            }
+
+
+
+
             # action selection
             if args.gamepad is True and not gamepad.is_autonomous_mode():
                 action = gamepad.get_action()
@@ -187,9 +200,12 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                         action = 0
             else:
                 if random.random() < epsilon:
-                    action = random.randrange(environment.get_num_actions())
+                    action = random.choice([0, 1, 2, 3, 4, 5])
                 else:
-                    action = dqn.inference(state.get_data())
+                    action = dqn.inference(state_dict) #변환된 state_dict로 inference 호출
+                    if action == 6:
+                        action == 0
+                      
             if args.show_monitor:
                 monitor.update(action, (args.gamepad is False or gamepad.is_autonomous_mode()))
 
@@ -205,26 +221,36 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                 # Make the move
                 reward, state, is_terminal = environment.step(action)
 
-                # train
+                batch = []  # ✅ `batch`를 미리 빈 리스트로 초기화
+
                 if is_training and old_state is not None:
                     if environment.get_step_number() > args.observation_steps:
                         if args.show_gpu_time:
                             start_time_train = datetime.datetime.now()
                         if first_train:
-                            environment.control.stop()
                             print("LOADING TENSORFLOW MODEL, PLEASE WAIT...")
                             first_train = False
-                        batch = replay_memory.draw_batch(args.batch_size)
-                        loss = dqn.train(batch, environment.get_step_number())
-                        episode_losses.append(loss)
-                        if args.show_gpu_time:
-                            training_time = (datetime.datetime.now() - start_time_train).total_seconds()
-                            time_list.insert(0, training_time)
-                            if len(time_list) > 100:
-                                time_list = time_list[:-1]
-                            print("Training time: %fs, Avg time:%fs" % (training_time, np.mean(time_list)))
-                        if args.slowdown_cycle:
-                            time.sleep(args.gpu_time)
+                        batch = replay_memory.draw_batch(args.batch_size)  # ✅ `batch` 업데이트
+                        
+                if batch is not None and len(batch) > 0:  # ✅ batch가 None이 아니고 데이터가 있을 경우에만 실행
+                    state_dict = {
+                        "lidar": np.asarray([sample.old_state["lidar"] for sample in batch]).reshape((-1, environment.get_state_size(), args.history_length)),  
+                        "velocity": np.asarray([sample.old_state["velocity"] for sample in batch]).reshape((-1, 1, args.history_length)),  
+                        "x": np.asarray([sample.old_state["x"] for sample in batch]).reshape((-1, 1, args.history_length)),  
+                        "y": np.asarray([sample.old_state["y"] for sample in batch]).reshape((-1, 1, args.history_length)),  
+                        "yaw": np.asarray([sample.old_state["yaw"] for sample in batch]).reshape((-1, 1, args.history_length))  
+                    }
+                    loss = dqn.train(state_dict, environment.get_step_number())
+                    episode_losses.append(loss)
+
+                    if args.show_gpu_time:
+                        training_time = (datetime.datetime.now() - start_time_train).total_seconds()
+                        time_list.insert(0, training_time)
+                        if len(time_list) > 100:
+                            time_list = time_list[:-1]
+                        print("Training time: %fs, Avg time:%fs" % (training_time, np.mean(time_list)))
+                    if args.slowdown_cycle:
+                        time.sleep(args.gpu_time)
                     else:
                         time.sleep(args.gpu_time)
                 else:
