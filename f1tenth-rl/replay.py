@@ -5,7 +5,6 @@ import os
 import pickle
 
 class Sample:
-    
     def __init__(self, old_state, action, reward, new_state, terminal):
         self.old_state = old_state
         self.action = action
@@ -14,6 +13,7 @@ class Sample:
         self.terminal = terminal
         self.weight = 1
         self.cumulative_weight = 1
+
 
     def is_interesting(self):
         return self.terminal or self.reward != 0
@@ -42,7 +42,18 @@ class ReplayMemory:
         return len(self.samples)
 
     def add_sample(self, sample):
-        self.samples.append(sample)
+        self.samples.append(
+            Sample(
+                old_state=sample.old_state,  # 이미 딕셔너리이므로 get_data() 호출 불필요
+                action=sample.action,
+                reward=sample.reward,
+                new_state=sample.new_state,  # 이미 딕셔너리이므로 get_data() 호출 불필요
+                terminal=sample.terminal
+            )
+        )
+
+        
+        # Prioritized replay handling
         if self.prioritized_replay:
             self._update_weights()
         self._truncate_list_if_necessary()
@@ -56,6 +67,29 @@ class ReplayMemory:
             return self._draw_prioritized_batch(batch_size)
         else:
             return random.sample(self.samples, batch_size)
+
+        return [
+            {
+                "old_state": {
+                    "lidar": sample.old_state["lidar"],
+                    "velocity": sample.old_state["velocity"],
+                    "x": sample.old_state["x"],  # x 추가
+                    "y": sample.old_state["y"],  # y 추가
+                    "yaw": sample.old_state["yaw"]  # yaw 추가
+                },
+                "action": sample.action,
+                "reward": sample.reward,
+                "new_state": {
+                    "lidar": sample.new_state["lidar"],
+                    "velocity": sample.new_state["velocity"],
+                    "x": sample.new_state["x"],  # x 추가
+                    "y": sample.new_state["y"],  # y 추가
+                    "yaw": sample.new_state["yaw"]  # yaw 추가
+                },
+                "terminal": sample.terminal
+            }
+            for sample in batch
+        ]
 
     def save(self):
         with open(self.save_buffer_dir + self.file, "wb") as f:

@@ -21,7 +21,7 @@ class State:
         State.cut_by = args.cut_lidar_data
         State.max_distance_norm = args.max_distance_norm
         State.add_velocity = args.add_velocity
-
+        State.add_pose = args.add_pose  # `add_pose` 추가
         State.lidar_reduction_method = args.lidar_reduction_method
         State.lidar_float_cut = args.lidar_float_cut
         State.lidar_to_image = args.lidar_to_image
@@ -58,6 +58,21 @@ class State:
 
         if State.lidar_to_image:
             return np.asarray(state).reshape((State.image_width, State.image_height, State.history_length))
+
+        if State.add_velocity and State.add_pose:
+            lidar_state = [s[:-4] for s in state]  # LiDAR 데이터
+            velocity_state = [s[-4] for s in state]  # velocity
+            x_state = [s[-3] for s in state]  # x
+            y_state = [s[-2] for s in state]  # y
+            yaw_state = [s[-1] for s in state]  # yaw
+            
+            return {
+                "lidar": np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length)),
+                "velocity": np.asarray(velocity_state).reshape((-1, 1, State.history_length)),
+                "x": np.asarray(x_state).reshape((-1, 1, State.history_length)),
+                "y": np.asarray(y_state).reshape((-1, 1, State.history_length)),
+                "yaw": np.asarray(yaw_state).reshape((-1, 1, State.history_length))
+            }
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
             acc_state = [state[0][1], state[1][1]]
@@ -66,43 +81,59 @@ class State:
             return np.asarray(state).reshape((len(state[0]), State.history_length))
 
     def process_data(self, data):
-        if State.add_velocity:
-            lidar_data, acceleration_value = data[:-1], data[-1]
-            data = lidar_data
-
+        if State.add_velocity and State.add_pose:
+            lidar_data, velocity_value, x_value, y_value, yaw_value = data[:-4], data[-4], data[-3], data[-2], data[-1]
+            data = lidar_data 
+            
+        elif State.add_velocity:
+            lidar_data, velocity_value = data[:-1], data[-1]
+            data = lidar_data  # LiDAR 데이터만 유지
+            
         if State.lidar_to_image:
             return self.lidar_to_img(data)
 
-        #we have the same max value for sampling errors and max range exceeding
-        #thus, we compute the reduction on the values under the max range and then we sobstitute the max value to the empty sets that resulted in 0
+        # LiDAR 데이터 전처리 (평균, 최소, 최대 등)
         if State.lidar_reduction_method == 'avg':
             data_avg = []
             for i in range(0, len(data), State.reduce_by):
-                filtered = list(filter(lambda x:  x <= State.max_distance_norm, data[i:i + State.reduce_by]))
+                filtered = list(filter(lambda x: x <= State.max_distance_norm, data[i:i + State.reduce_by]))
                 if len(filtered) == 0:
                     data_avg.append(State.max_distance_norm)
                 else:
-                    data_avg.append(sum(filtered)/len(filtered))
+                    data_avg.append(sum(filtered) / len(filtered))
             data = data_avg
-        if State.lidar_reduction_method == 'sampling':
+            
+        elif State.lidar_reduction_method == 'sampling':
             data = [data[i] for i in range(0, len(data), State.reduce_by)]
-        if State.lidar_reduction_method == 'max':
+            
+        elif State.lidar_reduction_method == 'max':
             data = [i if i <= State.max_distance_norm else 0 for i in data]
             data = [max(data[i:i + State.reduce_by]) for i in range(0, len(data), State.reduce_by)]
             data = [i if i > 0 else State.max_distance_norm for i in data]
-        if State.lidar_reduction_method == 'min':
+            
+        elif State.lidar_reduction_method == 'min':
             data = [min(data[i:i + State.reduce_by]) for i in range(0, len(data), State.reduce_by)]
 
+        # 데이터 정리 (최대 거리 정규화 및 소수점 처리)
         data = data[State.cut_by:-State.cut_by]
         if State.max_distance_norm > 1:
             data = [x / State.max_distance_norm for x in data]
         if State.lidar_float_cut > -1:
             data = [round(x, State.lidar_float_cut) for x in data]
 
-        if State.add_velocity:
-            return (data, acceleration_value)
+        # LiDAR + velocity + pose 정보 반환
+        if State.add_velocity and State.add_pose:
+            return np.array(data + [velocity_value, x_value, y_value, yaw_value], dtype=np.float32)
+
+        # LiDAR + velocity 정보 반환
+        elif State.add_velocity:
+            return np.array(data + [velocity_value], dtype=np.float32)
+
+        # LiDAR 데이터만 반환
         else:
-            return data
+            return np.array(data, dtype=np.float32)
+
+        
 
     def lidar_to_img(self, data):
         img_array = np.zeros((State.image_width, State.image_height), dtype=np.uint8)
