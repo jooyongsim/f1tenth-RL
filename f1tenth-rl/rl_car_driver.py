@@ -169,20 +169,21 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                 for sample in batch
             ]
             
-            # 데이터 크기 정규화 (history_length에 맞춰 확장
-            for state_data in state_data_list:
-                for key in ["lidar", "velocity", "x", "y", "yaw"]:
-                    state_data[key] = np.asarray(state_data[key])  #  NumPy 배열 변환
-                    if state_data[key].ndim == 0 or state_data[key].size == 1:  #  단일 값이면 history_length 크기로 확장
-                       state_data[key] = np.tile(state_data[key], (args.history_length,))
+            for i in range(len(state_data_list)):
+                for j in range(len(state_data_list[i])):
+                    state_data_list[i][j] = np.asarray(state_data_list[i][j])
+                    if state_data_list[i][j].ndim == 0 or state_data_list[i][j].size == 1:
+                        state_data_list[i][j] = np.tile(state_data_list[i][j], (args.history_length,))
+
                        
             state_dict = {
-                "lidar": np.asarray([state["lidar"] for state in state_data_list]).reshape((-1, environment.get_state_size(), args.history_length)),
-                "velocity": np.asarray([state["velocity"] for state in state_data_list]).reshape((-1, 1, args.history_length)),
-                "x": np.asarray([state["x"] for state in state_data_list]).reshape((-1, 1, args.history_length)),
-                "y": np.asarray([state["y"] for state in state_data_list]).reshape((-1, 1, args.history_length)),
-                "yaw": np.asarray([state["yaw"] for state in state_data_list]).reshape((-1, 1, args.history_length))
-            }
+                "lidar": np.asarray([s[0] for s in state_data_list]).reshape((-1, environment.get_state_size(), args.history_length)),
+                "velocity": np.asarray([s[1] for s in state_data_list]).reshape((-1, 1, args.history_length)),
+                "x": np.asarray([s[2] for s in state_data_list]).reshape((-1, 1, args.history_length)),
+                "y": np.asarray([s[3] for s in state_data_list]).reshape((-1, 1, args.history_length)),
+                "yaw": np.asarray([s[4] for s in state_data_list]).reshape((-1, 1, args.history_length))
+                }
+
 
 
 
@@ -221,7 +222,7 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                 # Make the move
                 reward, state, is_terminal = environment.step(action)
 
-                batch = []  # ✅ `batch`를 미리 빈 리스트로 초기화
+                batch = []  # `batch`를 미리 빈 리스트로 초기화
 
                 if is_training and old_state is not None:
                     if environment.get_step_number() > args.observation_steps:
@@ -232,13 +233,15 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                             first_train = False
                         batch = replay_memory.draw_batch(args.batch_size)  # ✅ `batch` 업데이트
                         
-                if batch is not None and len(batch) > 0:  # ✅ batch가 None이 아니고 데이터가 있을 경우에만 실행
+                if batch is not None and len(batch) > 0:
                     state_dict = {
-                        "lidar": np.asarray([sample.old_state["lidar"] for sample in batch]).reshape((-1, environment.get_state_size(), args.history_length)),  
-                        "velocity": np.asarray([sample.old_state["velocity"] for sample in batch]).reshape((-1, 1, args.history_length)),  
-                        "x": np.asarray([sample.old_state["x"] for sample in batch]).reshape((-1, 1, args.history_length)),  
-                        "y": np.asarray([sample.old_state["y"] for sample in batch]).reshape((-1, 1, args.history_length)),  
-                        "yaw": np.asarray([sample.old_state["yaw"] for sample in batch]).reshape((-1, 1, args.history_length))  
+                            "lidar": np.asarray([sample.old_state[0] for sample in batch]).reshape((-1, environment.get_state_size(), args.history_length)),
+                            "velocity": np.asarray([sample.old_state[1] for sample in batch]).reshape((-1, 1, args.history_length)),
+                            "x": np.asarray([sample.old_state[2] for sample in batch]).reshape((-1, 1, args.history_length)),
+                            "y": np.asarray([sample.old_state[3] for sample in batch]).reshape((-1, 1, args.history_length)),
+                            "yaw": np.asarray([sample.old_state[4] for sample in batch]).reshape((-1, 1, args.history_length))
+                            }
+
                     }
                     loss = dqn.train(state_dict, environment.get_step_number())
                     episode_losses.append(loss)
