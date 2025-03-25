@@ -163,31 +163,6 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
             else:
                 epsilon = eval_with_epsilon
 
-            # state_data가 State 객체이면 get_data() 호출, 아니면 그대로 사용
-            state_data_list = [
-                sample.old_state.get_data() if isinstance(sample.old_state, State) else sample.old_state
-                for sample in batch
-            ]
-            
-            for i in range(len(state_data_list)):
-                for j in range(len(state_data_list[i])):
-                    state_data_list[i][j] = np.asarray(state_data_list[i][j])
-                    if state_data_list[i][j].ndim == 0 or state_data_list[i][j].size == 1:
-                        state_data_list[i][j] = np.tile(state_data_list[i][j], (args.history_length,))
-
-                       
-            state_dict = {
-                "lidar": np.asarray([s[0] for s in state_data_list]).reshape((-1, environment.get_state_size(), args.history_length)),
-                "velocity": np.asarray([s[1] for s in state_data_list]).reshape((-1, 1, args.history_length)),
-                "x": np.asarray([s[2] for s in state_data_list]).reshape((-1, 1, args.history_length)),
-                "y": np.asarray([s[3] for s in state_data_list]).reshape((-1, 1, args.history_length)),
-                "yaw": np.asarray([s[4] for s in state_data_list]).reshape((-1, 1, args.history_length))
-                }
-
-
-
-
-
             # action selection
             if args.gamepad is True and not gamepad.is_autonomous_mode():
                 action = gamepad.get_action()
@@ -221,9 +196,8 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
 
                 # Make the move
                 reward, state, is_terminal = environment.step(action)
-
-                batch = []  # `batch`를 미리 빈 리스트로 초기화
-
+                
+                #train
                 if is_training and old_state is not None:
                     if environment.get_step_number() > args.observation_steps:
                         if args.show_gpu_time:
@@ -231,29 +205,18 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                         if first_train:
                             print("LOADING TENSORFLOW MODEL, PLEASE WAIT...")
                             first_train = False
-                        batch = replay_memory.draw_batch(args.batch_size)  # ✅ `batch` 업데이트
+                        batch = replay_memory.draw_batch(args.batch_size)  
+                        loss = dqn.train(state_dict, environment.get_step_number())
+                        episode_losses.append(loss)
                         
-                if batch is not None and len(batch) > 0:
-                    state_dict = {
-                            "lidar": np.asarray([sample.old_state[0] for sample in batch]).reshape((-1, environment.get_state_size(), args.history_length)),
-                            "velocity": np.asarray([sample.old_state[1] for sample in batch]).reshape((-1, 1, args.history_length)),
-                            "x": np.asarray([sample.old_state[2] for sample in batch]).reshape((-1, 1, args.history_length)),
-                            "y": np.asarray([sample.old_state[3] for sample in batch]).reshape((-1, 1, args.history_length)),
-                            "yaw": np.asarray([sample.old_state[4] for sample in batch]).reshape((-1, 1, args.history_length))
-                            }
-
-                    }
-                    loss = dqn.train(state_dict, environment.get_step_number())
-                    episode_losses.append(loss)
-
-                    if args.show_gpu_time:
-                        training_time = (datetime.datetime.now() - start_time_train).total_seconds()
-                        time_list.insert(0, training_time)
-                        if len(time_list) > 100:
-                            time_list = time_list[:-1]
-                        print("Training time: %fs, Avg time:%fs" % (training_time, np.mean(time_list)))
-                    if args.slowdown_cycle:
-                        time.sleep(args.gpu_time)
+                        if args.show_gpu_time:
+                            training_time = (datetime.datetime.now() - start_time_train).total_seconds()
+                            time_list.insert(0, training_time)
+                            if len(time_list) > 100:
+                                time_list = time_list[:-1]
+                            print("Training time: %fs, Avg time:%fs" % (training_time, np.mean(time_list)))
+                        if args.slowdown_cycle:
+                            time.sleep(args.gpu_time)
                     else:
                         time.sleep(args.gpu_time)
                 else:
