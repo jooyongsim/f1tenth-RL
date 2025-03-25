@@ -127,41 +127,26 @@ class CarEnv:
 
     def _get_car_state(self):
         current_data = list(self.sensors.get_lidar_ranges())
-        if self.add_velocity:
+        if self.add_velocity and self.add_pose:
             current_data.append(self.sensors.get_car_linear_velocity())
-        if self.add_pose:  # `x, y, yaw` 추가
             x, y, yaw = self.sensors.get_car_pose()
-            current_data.extend([x, y, yaw])  
+            current_data.extend([x, y, yaw])
+        elif self.add_velocity:
+            current_data.append(self.sensors.get_car_linear_velocity())
         return current_data
 
-
     def get_state_size(self):
-        state_data = self.state.get_data()  # get_data() 호출 후 변수에 저장
-        
-        if isinstance(state_data, dict):  #딕셔너리 형태인지 확인
-            return len(state_data["lidar"])  # 'lidar' 키를 사용하여 데이터 크기 반환
+        if self.add_velocity:
+            return len(self.state.get_data()[0])
         else:
-            return len(state_data[0])  # 기존 방식 유지 (리스트일 경우)
-
+            return len(self.state.get_data())
 
     def get_num_actions(self):
         return len(self.action_set)
 
     def get_state(self):
-        state_dict = {
-            "lidar": np.array(self.sensors.get_lidar_ranges(), dtype=np.float32),
-            "velocity": np.array(self.sensors.get_car_linear_velocity(), dtype=np.float32),
-        }
-        if self.add_pose:  # `x, y, yaw` 추가
-            x, y, yaw = self.sensors.get_car_pose()
-            state_dict.update({
-                "x": np.array(x, dtype=np.float32),
-                "y": np.array(y, dtype=np.float32),
-                "yaw": np.array(yaw, dtype=np.float32)
-            })
-        return state_dict
+        return self.state
 
-    
     def get_game_number(self):
         return self.game_number
     
