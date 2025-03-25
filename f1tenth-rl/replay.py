@@ -42,15 +42,10 @@ class ReplayMemory:
         return len(self.samples)
 
     def add_sample(self, sample):
-        self.samples.append(
-            Sample(
-                old_state=sample.old_state,  # 이미 딕셔너리이므로 get_data() 호출 불필요
-                action=sample.action,
-                reward=sample.reward,
-                new_state=sample.new_state,  # 이미 딕셔너리이므로 get_data() 호출 불필요
-                terminal=sample.terminal
-            )
-        )
+        self.samples.append(sample)
+        if self.prioritized_replay:
+            self._update_weights()
+        self._truncate_list_if_necessary()
 
         
         # Prioritized replay handling
