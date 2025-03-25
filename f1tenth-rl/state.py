@@ -65,14 +65,15 @@ class State:
             x_state = [s[-3] for s in state]  # x
             y_state = [s[-2] for s in state]  # y
             yaw_state = [s[-1] for s in state]  # yaw
+
+            lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
+            velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
+            x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
+            y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
+            yaw_array = np.asarray(yaw_state).reshape((-1, 1, State.history_length))
             
-            return {
-                "lidar": np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length)),
-                "velocity": np.asarray(velocity_state).reshape((-1, 1, State.history_length)),
-                "x": np.asarray(x_state).reshape((-1, 1, State.history_length)),
-                "y": np.asarray(y_state).reshape((-1, 1, State.history_length)),
-                "yaw": np.asarray(yaw_state).reshape((-1, 1, State.history_length))
-            }
+            return [lidar_array, velocity_array, x_array, y_array, yaw_array]
+            
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
             acc_state = [state[0][1], state[1][1]]

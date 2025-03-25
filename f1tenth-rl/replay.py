@@ -47,7 +47,7 @@ class ReplayMemory:
             self._update_weights()
         self._truncate_list_if_necessary()
 
-        
+
         # Prioritized replay handling
         if self.prioritized_replay:
             self._update_weights()
