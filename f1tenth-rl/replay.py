@@ -68,29 +68,6 @@ class ReplayMemory:
         else:
             return random.sample(self.samples, batch_size)
 
-        return [
-            {
-                "old_state": {
-                    "lidar": sample.old_state["lidar"],
-                    "velocity": sample.old_state["velocity"],
-                    "x": sample.old_state["x"],  # x 추가
-                    "y": sample.old_state["y"],  # y 추가
-                    "yaw": sample.old_state["yaw"]  # yaw 추가
-                },
-                "action": sample.action,
-                "reward": sample.reward,
-                "new_state": {
-                    "lidar": sample.new_state["lidar"],
-                    "velocity": sample.new_state["velocity"],
-                    "x": sample.new_state["x"],  # x 추가
-                    "y": sample.new_state["y"],  # y 추가
-                    "yaw": sample.new_state["yaw"]  # yaw 추가
-                },
-                "terminal": sample.terminal
-            }
-            for sample in batch
-        ]
-
     def save(self):
         with open(self.save_buffer_dir + self.file, "wb") as f:
             pickle.dump(self.samples, f)
