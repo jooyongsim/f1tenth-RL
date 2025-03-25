@@ -79,22 +79,6 @@ class Sensors():
 
         return x, y, yaw
 
-    def get_state(self):
-        """ LiDAR, 속도, 위치(x, y), 방향(yaw)을 포함한 상태 반환 """
-        lidar_data = self.get_lidar_ranges()
-        velocity = self.get_car_linear_velocity()
-        x, y, yaw = self.get_car_pose()
-
-        return {
-            "lidar": np.array(lidar_data, dtype=np.float32),
-            "velocity": np.array(velocity, dtype=np.float32),
-            "x": np.array(x, dtype=np.float32),
-            "y": np.array(y, dtype=np.float32),
-            "yaw": np.array(yaw, dtype=np.float32)
-        }
-
-
-
     def back_obstacle(self):
         if not self.is_simulator:
             if not self.use_back_sensors:
