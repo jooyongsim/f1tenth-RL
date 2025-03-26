@@ -205,8 +205,8 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                         if first_train:
                             print("LOADING TENSORFLOW MODEL, PLEASE WAIT...")
                             first_train = False
-                        batch = replay_memory.draw_batch(args.batch_size)  
-                        loss = dqn.train(state_dict, environment.get_step_number())
+                        batch = replay_memory.draw_batch(args.batch_size)
+                        loss = dqn.train(batch, environment.get_step_number())
                         episode_losses.append(loss)
                         
                         if args.show_gpu_time:
