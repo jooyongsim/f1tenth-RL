@@ -178,7 +178,7 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                 if random.random() < epsilon:
                     action = random.choice([0, 1, 2, 3, 4, 5])
                 else:
-                    action = dqn.inference(state_dict) #변환된 state_dict로 inference 호출
+                    action = dqn.inference(state.get_data())
                     if action == 6:
                         action == 0
                       
