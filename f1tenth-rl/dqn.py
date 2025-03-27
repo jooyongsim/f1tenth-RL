@@ -165,7 +165,8 @@ class DeepQNetwork:
             q_new_state = np.max(predicted, axis=1)
             target_q = rewards + (self.gamma*q_new_state * (1-is_terminal))
             one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)# using tf.one_hot causes strange errors
-        
+
+            loss = self.gradient_train({'lidar': old_states_lidar, 'acc': old_states_acc}, target_q, one_hot_actions)
         elif self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
@@ -196,7 +197,13 @@ class DeepQNetwork:
             q_new_state = np.max(predicted, axis=1)
             target_q = rewards + (self.gamma * q_new_state * (1 - is_terminal))
             one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)
-            
+            loss = self.gradient_train({
+                "lidar": old_states_lidar,
+                "velocity": old_states_velocity,
+                "x": old_states_x,
+                "y": old_states_y,
+                "yaw": old_states_yaw
+            }, target_q, one_hot_actions)
 
         else:
             old_states = np.asarray([sample.old_state.get_data() for sample in batch])
