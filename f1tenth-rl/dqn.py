@@ -155,7 +155,7 @@ class DeepQNetwork:
         if self.add_velocity:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch]).reshape((-1, self.history_length))
+            new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
             new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
             actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
             rewards = np.asarray([sample.reward for sample in batch])
