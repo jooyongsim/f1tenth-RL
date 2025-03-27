@@ -83,21 +83,6 @@ class DeepQNetwork:
         model.summary()
         return model
 
-    def __build_cnn1D_plus_velocity(self):
-        inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
-        input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
-        x = layers.Conv1D(filters=16, kernel_size=4, strides=2, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(inputs)
-        x = layers.Conv1D(filters=32, kernel_size=2, strides=1, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        x = layers.Flatten()(x)
-        x = layers.concatenate([x, input_velocity])
-        x = layers.Dense(64, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        predictions = layers.Dense(self.num_actions, activation='linear', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        model = tf.keras.Model(inputs=[inputs, input_velocity], outputs=predictions)
-        model.compile(optimizer=optimizers.Adam(self.learning_rate),
-                            loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
-        model.summary()
-        return model
-
     def __build_cnn1D_plus_velocity_and_pose(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
         input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
@@ -115,6 +100,22 @@ class DeepQNetwork:
                             loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
         model.summary()
         return model
+        
+    def __build_cnn1D_plus_velocity(self):
+        inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
+        input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
+        x = layers.Conv1D(filters=16, kernel_size=4, strides=2, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(inputs)
+        x = layers.Conv1D(filters=32, kernel_size=2, strides=1, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
+        x = layers.Flatten()(x)
+        x = layers.concatenate([x, input_velocity])
+        x = layers.Dense(64, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
+        predictions = layers.Dense(self.num_actions, activation='linear', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
+        model = tf.keras.Model(inputs=[inputs, input_velocity], outputs=predictions)
+        model.compile(optimizer=optimizers.Adam(self.learning_rate),
+                            loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
+        model.summary()
+        return model
+
 
     def __build_cnn2D(self):
         inputs = tf.keras.Input(shape=(self.image_width, self.image_height, self.history_length))
