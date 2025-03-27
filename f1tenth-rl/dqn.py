@@ -49,14 +49,12 @@ class DeepQNetwork:
     def __build_q_net(self):
         if self.lidar_to_image:
             return self.__build_cnn2D()
+        elif self.add_velocity and self.add_pose:
+            return self.__build_cnn1D_plus_velocity_and_pose()
+        elif self.add_velocity:
+            return self.__build_cnn1D_plus_velocity()
         else:
-            if self.add_velocity:
-                return self.__build_cnn1D_plus_velocity()
-            elif self.add_velocity and self.add_pose:
-                return self.__build_cnn1D_plus_velocity_and_pose()
-            else:
-                # select from __build_dense or build_cnn1D
-                return self.__build_cnn1D()
+            return self.__build_cnn1D()
 
     def __build_dense(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length))
