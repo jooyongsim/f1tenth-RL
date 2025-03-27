@@ -151,22 +151,7 @@ class DeepQNetwork:
         return np.asarray(self.behavior_predict(state)).argmax(axis=1)
 
     def train(self, batch, step_number):
-        if self.add_velocity:
-            old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
-            old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
-            new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
-            rewards = np.asarray([sample.reward for sample in batch])
-            is_terminal = np.asarray([sample.terminal for sample in batch])
-
-            predicted = self.target_predict({'lidar': new_states_lidar, 'velocity': new_states_velocity})
-            q_new_state = np.max(predicted, axis=1)
-            target_q = rewards + (self.gamma*q_new_state * (1-is_terminal))
-            one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)# using tf.one_hot causes strange errors
-
-            loss = self.gradient_train({'lidar': old_states_lidar, 'velocity': old_states_velocity}, target_q, one_hot_actions)
-        elif self.add_velocity and self.add_pose:
+        if self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
             old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
@@ -204,6 +189,21 @@ class DeepQNetwork:
                 "yaw": old_states_yaw
             }, target_q, one_hot_actions)
 
+        elif self.add_velocity:
+            old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
+            old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
+            new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
+            new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
+            actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
+            rewards = np.asarray([sample.reward for sample in batch])
+            is_terminal = np.asarray([sample.terminal for sample in batch])
+
+            predicted = self.target_predict({'lidar': new_states_lidar, 'velocity': new_states_velocity})
+            q_new_state = np.max(predicted, axis=1)
+            target_q = rewards + (self.gamma*q_new_state * (1-is_terminal))
+            one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)# using tf.one_hot causes strange errors
+
+            loss = self.gradient_train({'lidar': old_states_lidar, 'velocity': old_states_velocity}, target_q, one_hot_actions)
         else:
             old_states = np.asarray([sample.old_state.get_data() for sample in batch])
             new_states = np.asarray([sample.new_state.get_data() for sample in batch])
