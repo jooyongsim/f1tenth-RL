@@ -154,9 +154,9 @@ class DeepQNetwork:
     def train(self, batch, step_number):
         if self.add_velocity:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
-            old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch])
-            new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
-            new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch])
+            old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
+            new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch]).reshape((-1, self.history_length))
+            new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
             actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
             rewards = np.asarray([sample.reward for sample in batch])
             is_terminal = np.asarray([sample.terminal for sample in batch])
@@ -168,15 +168,15 @@ class DeepQNetwork:
         
         elif self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
-            old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch])
-            old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch])
-            old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch])
-            old_states_yaw = np.asarray([sample.old_state.get_data()[4] for sample in batch])
+            old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
+            old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
+            old_states_yaw = np.asarray([sample.old_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
             new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
-            new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch])
-            new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch])
-            new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch])
-            new_states_yaw = np.asarray([sample.new_state.get_data()[4] for sample in batch])
+            new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
+            new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
+            new_states_yaw = np.asarray([sample.new_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
             actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
             rewards = np.asarray([sample.reward for sample in batch])
 
