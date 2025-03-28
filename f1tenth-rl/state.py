@@ -84,10 +84,10 @@ class State:
     def process_data(self, data):
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
-            velocity_value = data[-4]
-            x_value = data[-3]
-            y_value = data[-2]
-            yaw_value = data[-1]
+            velocity_value = data[-4] / 5.0
+            x_value = data[-3] / 10.0
+            y_value = data[-2] / 10.0
+            yaw_value = data[-1] / np.pi
             
         elif State.add_velocity:
             lidar_data, velocity_value = data[:-1], data[-1]
