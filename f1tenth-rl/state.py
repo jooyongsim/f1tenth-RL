@@ -40,6 +40,7 @@ class State:
         if hasattr(self, 'data'):
             new_state.data = self.data[:State.history_length -1]
             new_state.data.insert(0, data)
+
         else:
             new_state.data = []
             for i in range(State.history_length):
@@ -47,6 +48,8 @@ class State:
         return new_state
     
     def get_data(self):
+        print("[DEBUG] get_data() 함수가 호출됨")
+
         if State.use_compression:
             state = []
             for i in range(State.history_length):
@@ -66,6 +69,12 @@ class State:
             y_state = [state[0][3], state[1][3]]
             yaw_state = [state[0][4], state[1][4]]
 
+            print(f"\n[DEBUG] History Length: {State.history_length}")
+            for i in range(State.history_length):
+                print(f"  [{i}] velocity: {velocity_state[i]:.3f}, "
+                      f"x: {x_state[i]:.3f}, y: {y_state[i]:.3f}, yaw: {yaw_state[i]:.3f}")
+
+
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
             velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
             x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
@@ -74,6 +83,7 @@ class State:
             
             return [lidar_array, velocity_array, x_array, y_array, yaw_array]
 
+            
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
             velocity_state = [state[0][1], state[1][1]]
