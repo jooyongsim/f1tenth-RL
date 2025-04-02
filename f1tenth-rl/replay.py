@@ -43,6 +43,7 @@ class ReplayMemory:
 
     def add_sample(self, sample):
         self.samples.append(sample)
+        #print(f"[DEBUG] sample added - total: {len(self.samples)}, reward: {sample.reward:.2f}, terminal: {sample.terminal}")
         if self.prioritized_replay:
             self._update_weights()
         self._truncate_list_if_necessary()

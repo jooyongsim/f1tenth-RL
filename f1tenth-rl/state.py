@@ -48,7 +48,7 @@ class State:
         return new_state
     
     def get_data(self):
-        print("[DEBUG] get_data() 함수가 호출됨")
+        #print("[DEBUG] get_data() 함수가 호출됨")
 
         if State.use_compression:
             state = []
@@ -69,10 +69,10 @@ class State:
             y_state = [state[0][3], state[1][3]]
             yaw_state = [state[0][4], state[1][4]]
 
-            print(f"\n[DEBUG] History Length: {State.history_length}")
-            for i in range(State.history_length):
-                print(f"  [{i}] velocity: {velocity_state[i]:.3f}, "
-                      f"x: {x_state[i]:.3f}, y: {y_state[i]:.3f}, yaw: {yaw_state[i]:.3f}")
+            #print(f"\n[DEBUG] History Length: {State.history_length}")
+            #for i in range(State.history_length):
+                #print(f"  [{i}] velocity: {velocity_state[i]:.3f}, "
+                      #f"x: {x_state[i]:.3f}, y: {y_state[i]:.3f}, yaw: {yaw_state[i]:.3f}")
 
 
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
@@ -95,9 +95,12 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            x_value = data[-3] 
-            y_value = data[-2] 
-            yaw_value = data[-1] 
+            x_value = data[-3] / 5.0 
+            y_value = data[-2] / 10.0
+            yaw_value = data[-1] / np.pi
+
+            #print(f"[DEBUG][Normalized] x: {x_value:.3f}, y: {y_value:.3f}, yaw: {yaw_value:.3f}")
+            #print(f"[DEBUG][Raw]       x: {data[-3]:.3f}, y: {data[-2]:.3f}, yaw: {data[-1]:.3f}")
             data = lidar_data
             
         elif State.add_velocity:
