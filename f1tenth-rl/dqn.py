@@ -178,6 +178,7 @@ class DeepQNetwork:
                 "y": new_states_y,
                 "yaw": new_states_yaw
             })
+            
             q_new_state = np.max(predicted, axis=1)
             target_q = rewards + (self.gamma * q_new_state * (1 - is_terminal))
             one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)
