@@ -69,12 +69,6 @@ class State:
             y_state = [state[0][3], state[1][3]]
             yaw_state = [state[0][4], state[1][4]]
 
-            #print(f"\n[DEBUG] History Length: {State.history_length}")
-            #for i in range(State.history_length):
-                #print(f"  [{i}] velocity: {velocity_state[i]:.3f}, "
-                      #f"x: {x_state[i]:.3f}, y: {y_state[i]:.3f}, yaw: {yaw_state[i]:.3f}")
-
-
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
             velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
             x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
@@ -95,12 +89,10 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            x_value = data[-3] / 5.0 
-            y_value = data[-2] / 10.0
-            yaw_value = data[-1] / np.pi
+            x_value = data[-3] 
+            y_value = data[-2] 
+            yaw_value = data[-1] 
 
-            #print(f"[DEBUG][Normalized] x: {x_value:.3f}, y: {y_value:.3f}, yaw: {yaw_value:.3f}")
-            #print(f"[DEBUG][Raw]       x: {data[-3]:.3f}, y: {data[-2]:.3f}, yaw: {data[-1]:.3f}")
             data = lidar_data
             
         elif State.add_velocity:
@@ -141,6 +133,11 @@ class State:
 
         # LiDAR + velocity + pose 정보 반환
         if State.add_velocity and State.add_pose:
+            # print("[DEBUG][INPUT DISTRIBUTION]")
+            # print(f"  LiDAR min={min(lidar_data):.3f}, max={max(lidar_data):.3f}, mean={np.mean(lidar_data):.3f}")
+            # print(f"  Velocity={velocity_value:.3f}")
+            # print(f"  x={x_value:.3f}, y={y_value:.3f}, yaw={yaw_value:.3f}")
+
             return [np.array(lidar_data, dtype=np.float32),
                     np.float32(velocity_value),
                     np.float32(x_value),
