@@ -74,25 +74,25 @@ class CarEnv:
         reward = 0
         if action == 0:
             self.control.forward()
-            reward = 0.08
+            reward += 0.08
         elif action == 1:
             self.control.right()
-            reward = 0.02
+            reward += 0.02
         elif action == 2:
             self.control.left()
-            reward = 0.02
+            reward += 0.02
         elif action == 3:
             self.control.slowdown()
-            reward = 0
+            reward += 0
         elif action == 4:
             self.control.lightly_right()
-            reward = 0.01
+            reward += 0.01
         elif action == 5:
             self.control.lightly_left()
-            reward = 0.01
+            reward += 0.01
         elif action == 6:
             self.control.forward()
-            reward = -0.02
+            reward += -0.02
             self.car_stop_count += 1
         else:
             raise ValueError('`action` should be between 0 and ' + str(len(self.action_set)-1))
@@ -106,7 +106,7 @@ class CarEnv:
         self.state = self.state.state_by_adding_data(self._get_car_state())
 
         if USE_VELOCITY_AS_REWARD:
-            reward = self.sensors.get_car_linear_velocity() * VELOCITY_NORMALIZATION * REWARD_SCALING
+            reward += self.sensors.get_car_linear_velocity() * VELOCITY_NORMALIZATION * REWARD_SCALING
 
         if ADD_LIDAR_DISTANCE_REWARD:
             reward += min(list(self.sensors.get_lidar_ranges())) * LIDAR_DISTANCE_WEIGHT

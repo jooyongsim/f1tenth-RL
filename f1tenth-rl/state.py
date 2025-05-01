@@ -94,7 +94,8 @@ class State:
             yaw_value = data[-1] 
 
             data = lidar_data
-            
+            # print("[DEBUG][LiDAR FULL INPUT]")
+            # print(', '.join([f"{v:.3f}" for v in lidar_data]))
         elif State.add_velocity:
             lidar_data, velocity_value = data[:-1], data[-1]
             data = lidar_data 
