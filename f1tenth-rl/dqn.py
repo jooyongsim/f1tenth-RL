@@ -4,6 +4,8 @@ import os
 import tensorflow as tf
 from tensorflow.keras import layers, initializers, losses, optimizers
 import threading 
+import csv
+import os
 
 class DeepQNetwork:
     def __init__(self, num_actions, state_size, replay_buffer, base_dir, tensorboard_dir, args):
@@ -45,6 +47,15 @@ class DeepQNetwork:
             self.target_net.load_weights(args.model)
             self.behavior_net.set_weights(self.target_net.get_weights())
 
+    def save_episode_reward(self, episode, reward):
+        reward_log_path = "episode_rewards2.csv"
+        if episode == 0 and not os.path.exists(reward_log_path):
+            with open(reward_log_path, mode='w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(["episode", "reward"])
+        with open(reward_log_path, mode='a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([episode, reward])
 
     def __build_q_net(self):
         if self.lidar_to_image:
@@ -190,6 +201,19 @@ class DeepQNetwork:
                 "yaw": old_states_yaw
             }, target_q, one_hot_actions)
 
+            # loss 기록용 csv 저장 경로
+            log_path = "loss_log2.csv"
+            # 첫 줄 헤더 작성 (처음 한 번만)
+            if step_number == 0 and not os.path.exists(log_path):
+                with open(log_path, mode='w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["step", "loss"])
+                    
+            # 매 학습 스텝마다 loss 기
+            with open(log_path, mode='a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([step_number, float(loss)])
+            
         elif self.add_velocity:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))

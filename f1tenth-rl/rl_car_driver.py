@@ -258,6 +258,7 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
 
         if is_training:
             train_episodes += 1
+            dqn.save_episode_reward(train_episodes, environment.get_game_score())
             episode_train_reward_list.insert(0, environment.get_game_score())
             if len(episode_train_reward_list) > 100:
                 episode_train_reward_list = episode_train_reward_list[:-1]
