@@ -48,7 +48,7 @@ class DeepQNetwork:
             self.behavior_net.set_weights(self.target_net.get_weights())
 
     def save_episode_reward(self, episode, reward):
-        reward_log_path = "episode_rewards2.csv"
+        reward_log_path = "episode_rewards_sanitycheck.csv"
         if episode == 0 and not os.path.exists(reward_log_path):
             with open(reward_log_path, mode='w', newline='') as f:
                 writer = csv.writer(f)
@@ -202,7 +202,7 @@ class DeepQNetwork:
             }, target_q, one_hot_actions)
 
             # loss 기록용 csv 저장 경로
-            log_path = "loss_log2.csv"
+            log_path = "loss_log_sanitycheck.csv"
             # 첫 줄 헤더 작성 (처음 한 번만)
             if step_number == 0 and not os.path.exists(log_path):
                 with open(log_path, mode='w', newline='') as f:
