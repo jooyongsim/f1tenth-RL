@@ -89,9 +89,9 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            x_value = data[-3] 
-            y_value = data[-2] 
-            yaw_value = data[-1] 
+            x_value = data[-3] / 5.0
+            y_value = data[-2] / 10.0
+            yaw_value = data[-1] / np.pi
 
             data = lidar_data
             # print("[DEBUG][LiDAR FULL INPUT]")
