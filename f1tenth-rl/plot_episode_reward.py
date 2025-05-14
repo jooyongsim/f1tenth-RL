@@ -3,7 +3,7 @@ import csv
 
 episodes, rewards = [], []
 
-with open("episode_rewards_normalization_trained.csv", "r") as f:
+with open("episode_rewards_normalization_original_trained.csv", "r") as f:
     reader = csv.DictReader(f)
     for row in reader:
         episodes.append(int(row["episode"]))

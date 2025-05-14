@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--simulator", action='store_true', help="to set the use of the simulator")                                         
 parser.add_argument("--use_back_sensors", action='store_true', help="to set the use of the simulator")
 # agent parameters
-parser.add_argument("--learning-rate", type=float, default=0.0000042, help="learning rate of the NN")          
+parser.add_argument("--learning-rate", type=float, default=0.00042, help="learning rate of the NN")          
 parser.add_argument("--gamma", type=float, default=0.98, help="""gamma [0, 1] is the discount factor. It determines the importance of future rewards.
                                 A factor of 0 will make the agent consider only immediate reward, a factor approaching 1 will make it strive for a long-term high reward""")
 parser.add_argument("--epsilon", type=float, default=1, help="]0, 1]for epsilon greedy train")
