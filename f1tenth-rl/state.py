@@ -48,7 +48,6 @@ class State:
         return new_state
     
     def get_data(self):
-        #print("[DEBUG] get_data() 함수가 호출됨")
 
         if State.use_compression:
             state = []
@@ -65,23 +64,24 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_state = [state[0][0], state[1][0]] 
             velocity_state = [state[0][1], state[1][1]]
-            x_state = [state[0][2], state[1][2]]
-            y_state = [state[0][3], state[1][3]]
-            yaw_state = [state[0][4], state[1][4]]
+            # x_state = [state[0][2], state[1][2]]
+            # y_state = [state[0][3], state[1][3]]
+            yaw_state = [state[0][2], state[1][2]]
 
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
             velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
-            x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
-            y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
+            # x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
+            # y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
             yaw_array = np.asarray(yaw_state).reshape((-1, 1, State.history_length))
             
-            return [lidar_array, velocity_array, x_array, y_array, yaw_array]
+            # return [lidar_array, velocity_array, x_array, y_array, yaw_array]
 
+            return [lidar_array, velocity_array, yaw_array]
             
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
             velocity_state = [state[0][1], state[1][1]]
-            return [np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length)), np.asarray(acc_state)]
+            return [np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length)), np.asarray(velocity_state)]
         else:
             return np.asarray(state).reshape((len(state[0]), State.history_length))
 
@@ -89,13 +89,11 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            x_value = data[-3] / 5.0
-            y_value = data[-2] / 10.0
-            yaw_value = data[-1] / np.pi
-
+            # x_value = data[-3] 
+            # y_value = data[-2] 
+            yaw_value = data[-3] / np.pi
             data = lidar_data
-            # print("[DEBUG][LiDAR FULL INPUT]")
-            # print(', '.join([f"{v:.3f}" for v in lidar_data]))
+
         elif State.add_velocity:
             lidar_data, velocity_value = data[:-1], data[-1]
             data = lidar_data 
@@ -103,7 +101,6 @@ class State:
         if State.lidar_to_image:
             return self.lidar_to_img(data)
 
-        # LiDAR 데이터 전처리 (평균, 최소, 최대 등)
         if State.lidar_reduction_method == 'avg':
             data_avg = []
             for i in range(0, len(data), State.reduce_by):
@@ -125,7 +122,6 @@ class State:
         elif State.lidar_reduction_method == 'min':
             data = [min(data[i:i + State.reduce_by]) for i in range(0, len(data), State.reduce_by)]
 
-        # 데이터 정리 (최대 거리 정규화 및 소수점 처리)
         data = data[State.cut_by:-State.cut_by]
         if State.max_distance_norm > 1:
             data = [x / State.max_distance_norm for x in data]
@@ -134,21 +130,15 @@ class State:
 
         # LiDAR + velocity + pose 정보 반환
         if State.add_velocity and State.add_pose:
-            # print("[DEBUG][INPUT DISTRIBUTION]")
-            # print(f"  LiDAR min={min(lidar_data):.3f}, max={max(lidar_data):.3f}, mean={np.mean(lidar_data):.3f}")
-            # print(f"  Velocity={velocity_value:.3f}")
-            # print(f"  x={x_value:.3f}, y={y_value:.3f}, yaw={yaw_value:.3f}")
-
             return [np.array(lidar_data, dtype=np.float32),
                     np.float32(velocity_value),
-                    np.float32(x_value),
-                    np.float32(y_value),
+                    # np.float32(x_value),
+                    # np.float32(y_value),
                     np.float32(yaw_value)]
-        # LiDAR + velocity 정보 반환
+
         elif State.add_velocity:
             return (data, velocity_value)
 
-        # LiDAR 데이터만 반환
         else:
             return data
 

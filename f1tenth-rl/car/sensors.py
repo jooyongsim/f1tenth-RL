@@ -70,14 +70,15 @@ class Sensors():
         if self.odometry is None:
             return 0, 0, 0  # 기본값 반환 (데이터 없음)
     
-        x = self.odometry.pose.pose.position.x
-        y = self.odometry.pose.pose.position.y
+        # x = self.odometry.pose.pose.position.x
+        # y = self.odometry.pose.pose.position.y
 
         # Quaternion을 yaw로 변환
         q = self.odometry.pose.pose.orientation
         yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y), q.w**2 + q.x**2 - q.y**2 - q.z**2)
 
-        return x, y, yaw
+        # return x, y, yaw
+        return yaw
 
     def back_obstacle(self):
         if not self.is_simulator:

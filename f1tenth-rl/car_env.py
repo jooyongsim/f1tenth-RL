@@ -74,25 +74,25 @@ class CarEnv:
         reward = 0
         if action == 0:
             self.control.forward()
-            reward += 0.08
+            reward = 0.08
         elif action == 1:
             self.control.right()
-            reward += 0.02
+            reward = 0.02
         elif action == 2:
             self.control.left()
-            reward += 0.02
+            reward = 0.02
         elif action == 3:
             self.control.slowdown()
-            reward += 0
+            reward = 0
         elif action == 4:
             self.control.lightly_right()
-            reward += 0.01
+            reward = 0.01
         elif action == 5:
             self.control.lightly_left()
-            reward += 0.01
+            reward = 0.01
         elif action == 6:
             self.control.forward()
-            reward += -0.02
+            reward = -0.02
             self.car_stop_count += 1
         else:
             raise ValueError('`action` should be between 0 and ' + str(len(self.action_set)-1))
@@ -129,14 +129,20 @@ class CarEnv:
         current_data = list(self.sensors.get_lidar_ranges())
         if self.add_velocity and self.add_pose:
             current_data.append(self.sensors.get_car_linear_velocity())
-            x, y, yaw = self.sensors.get_car_pose()
-            current_data.extend([x, y, yaw])
+            # x, y, yaw = self.sensors.get_car_pose()
+            yaw = self.sensors.get_car_pose()
+
+            # current_data.extend([x, y, yaw])
+            current_data.extend([yaw])
+
         elif self.add_velocity:
             current_data.append(self.sensors.get_car_linear_velocity())
         return current_data
 
     def get_state_size(self):
-        if self.add_velocity:
+        if self.add_velocity and self.add_pose:
+            return len(self.state.get_data()[0])
+        elif self.add_velocity:
             return len(self.state.get_data()[0])
         else:
             return len(self.state.get_data())
