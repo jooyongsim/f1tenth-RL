@@ -47,7 +47,7 @@ class DeepQNetwork:
             self.behavior_net.set_weights(self.target_net.get_weights())
 
     def save_episode_reward(self, episode, reward):
-        reward_log_path = "episode_rewards_yawonly.csv"
+        reward_log_path = "episode_rewards_sanitycheck.csv"
         if episode == 0 and not os.path.exists(reward_log_path):
             with open(reward_log_path, mode='w', newline='') as f:
                 writer = csv.writer(f)
@@ -96,16 +96,17 @@ class DeepQNetwork:
     def __build_cnn1D_plus_velocity_and_pose(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
         input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
-        # input_x = tf.keras.Input(shape=((self.history_length)), name="x")
-        # input_y = tf.keras.Input(shape=((self.history_length)), name="y")
+        input_x = tf.keras.Input(shape=((self.history_length)), name="x")
+        input_y = tf.keras.Input(shape=((self.history_length)), name="y")
         input_yaw = tf.keras.Input(shape=((self.history_length)), name="yaw")
         x = layers.Conv1D(filters=16, kernel_size=4, strides=2, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(inputs)
         x = layers.Conv1D(filters=32, kernel_size=2, strides=1, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         x = layers.Flatten()(x)
-        x = layers.concatenate([x, input_velocity, input_yaw])
+        x = layers.concatenate([x, input_velocity])
+        # x = layers.concatenate([x, input_velocity, input_x, input_y, input_yaw])
         x = layers.Dense(64, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         predictions = layers.Dense(self.num_actions, activation='linear', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        model = tf.keras.Model(inputs=[inputs, input_velocity, input_yaw], outputs=predictions)
+        model = tf.keras.Model(inputs=[inputs, input_velocity, input_x, input_y, input_yaw], outputs=predictions)
         model.compile(optimizer=optimizers.Adam(self.learning_rate),
                             loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
         model.summary()
@@ -113,14 +114,14 @@ class DeepQNetwork:
 
     def __build_cnn1D_plus_velocity(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
-        input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
+        input_acceleration = tf.keras.Input(shape=((self.history_length)), name="acc")
         x = layers.Conv1D(filters=16, kernel_size=4, strides=2, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(inputs)
         x = layers.Conv1D(filters=32, kernel_size=2, strides=1, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         x = layers.Flatten()(x)
-        x = layers.concatenate([x, input_velocity])
+        x = layers.concatenate([x, input_acceleration])
         x = layers.Dense(64, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         predictions = layers.Dense(self.num_actions, activation='linear', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        model = tf.keras.Model(inputs=[inputs, input_velocity], outputs=predictions)
+        model = tf.keras.Model(inputs=[inputs, input_acceleration], outputs=predictions)
         model.compile(optimizer=optimizers.Adam(self.learning_rate),
                             loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
         model.summary()
@@ -151,8 +152,8 @@ class DeepQNetwork:
             state[0] = state[0].reshape((-1, self.state_size, self.history_length))
             state[1] = state[1].reshape((-1, self.history_length))
             state[2] = state[2].reshape((-1, self.history_length))
-            # state[3] = state[3].reshape((-1, self.history_length))
-            # state[4] = state[4].reshape((-1, self.history_length))
+            state[3] = state[3].reshape((-1, self.history_length))
+            state[4] = state[4].reshape((-1, self.history_length))
 
         elif self.add_velocity:
             state[0] = state[0].reshape((-1, self.state_size, self.history_length))
@@ -166,14 +167,14 @@ class DeepQNetwork:
         if self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            # old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
-            # old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
-            old_states_yaw = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
+            old_states_yaw = np.asarray([sample.old_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
             new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
             new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            # new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
-            # new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
-            new_states_yaw = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
+            new_states_yaw = np.asarray([sample.new_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
             actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
             rewards = np.asarray([sample.reward for sample in batch])
 
@@ -186,8 +187,8 @@ class DeepQNetwork:
             predicted = self.target_predict({
                 "lidar": new_states_lidar,
                 "velocity": new_states_velocity,
-                # "x": new_states_x,
-                # "y": new_states_y,
+                "x": new_states_x,
+                "y": new_states_y,
                 "yaw": new_states_yaw
             })
             
@@ -197,13 +198,13 @@ class DeepQNetwork:
             loss = self.gradient_train({
                 "lidar": old_states_lidar,
                 "velocity": old_states_velocity,
-                # "x": old_states_x,
-                # "y": old_states_y,
+                "x": old_states_x,
+                "y": old_states_y,
                 "yaw": old_states_yaw
             }, target_q, one_hot_actions)
 
             # loss 기록용 csv 저장 경로
-            log_path = "loss_log_yawonly.csv"
+            log_path = "loss_log_sanitycheck.csv"
             # 첫 줄 헤더 작성 (처음 한 번만)
             if step_number == 0 and not os.path.exists(log_path):
                 with open(log_path, mode='w', newline='') as f:

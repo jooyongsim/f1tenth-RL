@@ -4,7 +4,7 @@ import csv
 steps = []
 losses = []
 
-with open("loss_log_yawonly.csv", mode='r') as f:
+with open("loss_log_sanitycheck.csv", mode='r') as f:
     reader = csv.DictReader(f)
     for row in reader:
         steps.append(int(row["step"]))

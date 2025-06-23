@@ -64,19 +64,17 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_state = [state[0][0], state[1][0]] 
             velocity_state = [state[0][1], state[1][1]]
-            # x_state = [state[0][2], state[1][2]]
-            # y_state = [state[0][3], state[1][3]]
+            x_state = [state[0][2], state[1][2]]
+            y_state = [state[0][3], state[1][3]]
             yaw_state = [state[0][2], state[1][2]]
 
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
             velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
-            # x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
-            # y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
+            x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
+            y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
             yaw_array = np.asarray(yaw_state).reshape((-1, 1, State.history_length))
             
-            # return [lidar_array, velocity_array, x_array, y_array, yaw_array]
-
-            return [lidar_array, velocity_array, yaw_array]
+            return [lidar_array, velocity_array, x_array, y_array, yaw_array]
             
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
@@ -89,8 +87,8 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            # x_value = data[-3] 
-            # y_value = data[-2] 
+            x_value = data[-3] 
+            y_value = data[-2] 
             yaw_value = data[-3] / np.pi
             data = lidar_data
 
@@ -132,8 +130,8 @@ class State:
         if State.add_velocity and State.add_pose:
             return [np.array(lidar_data, dtype=np.float32),
                     np.float32(velocity_value),
-                    # np.float32(x_value),
-                    # np.float32(y_value),
+                    np.float32(x_value),
+                    np.float32(y_value),
                     np.float32(yaw_value)]
 
         elif State.add_velocity:
