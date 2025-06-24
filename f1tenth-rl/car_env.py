@@ -127,7 +127,6 @@ class CarEnv:
 
     def _get_car_state(self):
         current_data = list(self.sensors.get_lidar_ranges())
-
         if self.add_velocity and self.add_pose:
             current_data.append(self.sensors.get_car_linear_velocity())
             x, y, yaw = self.sensors.get_car_pose()
