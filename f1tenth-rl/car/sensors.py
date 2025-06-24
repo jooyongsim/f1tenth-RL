@@ -64,7 +64,8 @@ class Sensors():
     def get_car_orientation(self):
         q = self.imu.orientation
         return math.atan2(2.0*(q.w*q.z + q.x*q.y), q.w**2 + q.x**2 - q.y**2 - q.z**2)
-
+    
+    #car pose 추가
     def get_car_pose(self):
         """ 차량의 (x, y) 위치 및 yaw (방향)를 반환 """
         if self.odometry is None:

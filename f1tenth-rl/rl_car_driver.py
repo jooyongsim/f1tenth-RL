@@ -32,7 +32,7 @@ parser.add_argument("--gamma", type=float, default=0.98, help="""gamma [0, 1] is
                                 A factor of 0 will make the agent consider only immediate reward, a factor approaching 1 will make it strive for a long-term high reward""")
 parser.add_argument("--epsilon", type=float, default=1, help="]0, 1]for epsilon greedy train")
 parser.add_argument("--epsilon-decay", type=float, default=0.99994, help="]0, 1] every step epsilon = epsilon * decay, in order to decrease constantly")
-parser.add_argument("--epsilon-min", type=float, default=0.000000001, help="epsilon with decay doesn't fall below epsilon min")
+parser.add_argument("--epsilon-min", type=float, default=0.1, help="epsilon with decay doesn't fall below epsilon min")
 parser.add_argument("--batch-size", type=float, default=32, help="size of the batch used in gradient descent")
 
 parser.add_argument("--observation-steps", type=int, default=500, help="train only after this many steps (1 step = [history-length] frames)")
@@ -72,7 +72,7 @@ parser.add_argument("--env-logging", type=bool, default=False, help="log state, 
 parser.add_argument("--gamepad", type=bool, default=False, help="log state, action, reward of every step to build a dataset for later use")
 parser.add_argument("--show-monitor", type=bool, default=False, help="show a GUI with car status information")
 #pose add
-parser.add_argument("--add-pose", type=bool, default=True, help="if true, it adds the (x, y, yaw) to the state (the NN is extended)")
+parser.add_argument("--add-pose", type=bool, default=True, help="if true, it adds the (x, y, yaw) to the state (the NN is extended)")   #pose arguement 추가
 args = parser.parse_args()
 
 print('Arguments: ', (args))
@@ -271,7 +271,7 @@ def run_epoch(min_epoch_steps, eval_with_epsilon=None):
                 environment.get_step_number(), avg_rewards, episode_avg_loss))
             print(log)
             print("   epsilon " + str(train_epsilon))
-            dqn.save_episode_reward(train_episodes, environment.get_game_score())
+            dqn.save_episode_reward(train_episodes, environment.get_game_score())   #episode당 reward 기록용
             if args.logging:
                 with summary_writer.as_default():
                     tf.summary.scalar('train episode reward', environment.get_game_score(), step=train_episodes)

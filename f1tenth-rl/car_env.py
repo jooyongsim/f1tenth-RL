@@ -26,6 +26,7 @@ class CarEnv:
         self.history_length = args.history_length
         self.is_simulator = args.simulator
         self.add_velocity = args.add_velocity
+        self.add_pose  = args.add_pose     #add pose
         rospy.init_node('rl_driver')
         self.sensors = Sensors(is_simulator=args.simulator, use_back_sensors=args.use_back_sensors)
         self.control = Drive(self.sensors, is_simulator=args.simulator)
@@ -126,16 +127,36 @@ class CarEnv:
 
     def _get_car_state(self):
         current_data = list(self.sensors.get_lidar_ranges())
-        if self.add_velocity:
+
+        if self.add_velocity and self.add_pose:
             current_data.append(self.sensors.get_car_linear_velocity())
+            x, y, yaw = self.sensors.get_car_pose()
+            current_data.extend([x, y, yaw])
+        elif self.add_velocity:
+            current_data.append(self.sensors.get_car_linear_velocity())
+
         return current_data
 
+    # def _get_car_state(self):
+    #     current_data = list(self.sensors.get_lidar_ranges())
+    #     if self.add_velocity:
+    #         current_data.append(self.sensors.get_car_linear_velocity())
+    #     return current_data
 
     def get_state_size(self):
-        if self.add_velocity:
-            return len(self.state.get_data()[0])
+        state_data = self.state.get_data()
+        if self.add_velocity and self.add_pose:
+            return len(state_data[0])
+        elif self.add_velocity:
+            return len(state_data[0])
         else:
-            return len(self.state.get_data())
+            return len(state_data)
+
+    # def get_state_size(self):
+    #     if self.add_velocity:
+    #         return len(self.state.get_data()[0])
+    #     else:
+    #         return len(self.state.get_data())
 
     def get_num_actions(self):
         return len(self.action_set)

@@ -40,7 +40,6 @@ class State:
         if hasattr(self, 'data'):
             new_state.data = self.data[:State.history_length -1]
             new_state.data.insert(0, data)
-
         else:
             new_state.data = []
             for i in range(State.history_length):
@@ -62,19 +61,41 @@ class State:
             return np.asarray(state).reshape((State.image_width, State.image_height, State.history_length))
 
         if State.add_velocity and State.add_pose:
-            lidar_state = [state[0][0], state[1][0]] 
-            velocity_state = [state[0][1], state[1][1]]
+            # print("[DEBUG] get_data() called:")
+            # print(f"    pose x: {state[0][2] if len(state[0]) > 2 else '❌ MISSING'}")
+            # print(f"    pose y: {state[0][3] if len(state[0]) > 3 else '❌ MISSING'}")
+            # print(f"    pose yaw: {state[0][4] if len(state[0]) > 4 else '❌ MISSING'}")
+
             x_state = [state[0][2], state[1][2]]
             y_state = [state[0][3], state[1][3]]
-            yaw_state = [state[0][2], state[1][2]]
+            yaw_state = [state[0][4], state[1][4]]
+            
+            lidar_state = [state[0][0], state[1][0]] 
+            velocity_state = [state[0][1], state[1][1]]
 
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
             velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
             x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
             y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
             yaw_array = np.asarray(yaw_state).reshape((-1, 1, State.history_length))
-            
+
             return [lidar_array, velocity_array, x_array, y_array, yaw_array]
+
+
+        # if State.add_velocity and State.add_pose:
+        #     lidar_state = [state[0][0], state[1][0]] 
+        #     velocity_state = [state[0][1], state[1][1]]
+        #     x_state = [state[0][2], state[1][2]]
+        #     y_state = [state[0][3], state[1][3]]
+        #     yaw_state = [state[0][4], state[1][4]]
+
+        #     lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
+        #     velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
+        #     x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
+        #     y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
+        #     yaw_array = np.asarray(yaw_state).reshape((-1, 1, State.history_length))
+            
+        #     return [lidar_array, velocity_array, x_array, y_array, yaw_array]
             
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
@@ -82,15 +103,34 @@ class State:
             return [np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length)), np.asarray(velocity_state)]
         else:
             return np.asarray(state).reshape((len(state[0]), State.history_length))
+        
+    # def get_data(self):
+    #     if State.use_compression:
+    #         state = []
+    #         for i in range(State.history_length):
+    #             state.append(np.fromstring(
+    #                 blosc.decompress(self.data[i]),
+    #             dtype=np.float32))
+    #     else:
+    #         state = self.data
+
+    #     if State.lidar_to_image:
+    #         return np.asarray(state).reshape((State.image_width, State.image_height, State.history_length))
+    #     elif State.add_velocity:
+    #         lidar_state = [state[0][0], state[1][0]]
+    #         acc_state = [state[0][1], state[1][1]]
+    #         return [np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length)), np.asarray(acc_state)]
+    #     else:
+    #         return np.asarray(state).reshape((len(state[0]), State.history_length))
 
     def process_data(self, data):
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            x_value = data[-3] 
-            y_value = data[-2] 
-            yaw_value = data[-3] / np.pi
-            data = lidar_data
+            x_value = data[-3] / 10.0
+            y_value = data[-2] / 20.0
+            yaw_value = data[-1] / np.pi
+            return (lidar_data, velocity_value, x_value, y_value, yaw_value)
 
         elif State.add_velocity:
             lidar_data, velocity_value = data[:-1], data[-1]
@@ -98,26 +138,33 @@ class State:
             
         if State.lidar_to_image:
             return self.lidar_to_img(data)
+        
+    # def process_data(self, data):
+    #     if State.add_velocity:
+    #         lidar_data, acceleration_value = data[:-1], data[-1]
+    #         data = lidar_data
 
+    #     if State.lidar_to_image:
+    #         return self.lidar_to_img(data)
+
+        #we have the same max value for sampling errors and max range exceeding
+        #thus, we compute the reduction on the values under the max range and then we sobstitute the max value to the empty sets that resulted in 0
         if State.lidar_reduction_method == 'avg':
             data_avg = []
             for i in range(0, len(data), State.reduce_by):
-                filtered = list(filter(lambda x: x <= State.max_distance_norm, data[i:i + State.reduce_by]))
+                filtered = list(filter(lambda x:  x <= State.max_distance_norm, data[i:i + State.reduce_by]))
                 if len(filtered) == 0:
                     data_avg.append(State.max_distance_norm)
                 else:
-                    data_avg.append(sum(filtered) / len(filtered))
+                    data_avg.append(sum(filtered)/len(filtered))
             data = data_avg
-            
-        elif State.lidar_reduction_method == 'sampling':
+        if State.lidar_reduction_method == 'sampling':
             data = [data[i] for i in range(0, len(data), State.reduce_by)]
-            
-        elif State.lidar_reduction_method == 'max':
+        if State.lidar_reduction_method == 'max':
             data = [i if i <= State.max_distance_norm else 0 for i in data]
             data = [max(data[i:i + State.reduce_by]) for i in range(0, len(data), State.reduce_by)]
             data = [i if i > 0 else State.max_distance_norm for i in data]
-            
-        elif State.lidar_reduction_method == 'min':
+        if State.lidar_reduction_method == 'min':
             data = [min(data[i:i + State.reduce_by]) for i in range(0, len(data), State.reduce_by)]
 
         data = data[State.cut_by:-State.cut_by]
@@ -126,21 +173,10 @@ class State:
         if State.lidar_float_cut > -1:
             data = [round(x, State.lidar_float_cut) for x in data]
 
-        # LiDAR + velocity + pose 정보 반환
-        if State.add_velocity and State.add_pose:
-            return [np.array(lidar_data, dtype=np.float32),
-                    np.float32(velocity_value),
-                    np.float32(x_value),
-                    np.float32(y_value),
-                    np.float32(yaw_value)]
-
-        elif State.add_velocity:
+        if State.add_velocity:
             return (data, velocity_value)
-
         else:
             return data
-
-        
 
     def lidar_to_img(self, data):
         img_array = np.zeros((State.image_width, State.image_height), dtype=np.uint8)

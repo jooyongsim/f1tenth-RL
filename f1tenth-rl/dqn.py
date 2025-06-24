@@ -26,7 +26,6 @@ class DeepQNetwork:
 
         self.add_velocity = args.add_velocity
         self.add_pose = args.add_pose
-
         if not os.path.isdir(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
 
@@ -46,16 +45,6 @@ class DeepQNetwork:
             self.target_net.load_weights(args.model)
             self.behavior_net.set_weights(self.target_net.get_weights())
 
-    def save_episode_reward(self, episode, reward):
-        reward_log_path = "episode_rewards_sanitycheck.csv"
-        if episode == 0 and not os.path.exists(reward_log_path):
-            with open(reward_log_path, mode='w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(["episode", "reward"])
-        with open(reward_log_path, mode='a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([episode, reward])
-
     def __build_q_net(self):
         if self.lidar_to_image:
             return self.__build_cnn2D()
@@ -67,6 +56,16 @@ class DeepQNetwork:
             else:
                 # select from __build_dense or build_cnn1D
                 return self.__build_cnn1D()
+            
+    # def __build_q_net(self):
+    #     if self.lidar_to_image:
+    #         return self.__build_cnn2D()
+    #     else:
+    #         if self.add_velocity:
+    #             return self.__build_cnn1D_plus_velocity()
+    #         else:
+    #             # select from __build_dense or build_cnn1D
+    #             return self.__build_cnn1D()
 
     def __build_dense(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length))
@@ -92,7 +91,7 @@ class DeepQNetwork:
                             loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
         model.summary()
         return model
-
+    
     def __build_cnn1D_plus_velocity_and_pose(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
         input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
@@ -114,14 +113,14 @@ class DeepQNetwork:
 
     def __build_cnn1D_plus_velocity(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
-        input_acceleration = tf.keras.Input(shape=((self.history_length)), name="acc")
+        input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
         x = layers.Conv1D(filters=16, kernel_size=4, strides=2, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(inputs)
         x = layers.Conv1D(filters=32, kernel_size=2, strides=1, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         x = layers.Flatten()(x)
-        x = layers.concatenate([x, input_acceleration])
+        x = layers.concatenate([x, input_velocity])
         x = layers.Dense(64, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         predictions = layers.Dense(self.num_actions, activation='linear', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        model = tf.keras.Model(inputs=[inputs, input_acceleration], outputs=predictions)
+        model = tf.keras.Model(inputs=[inputs, input_velocity], outputs=predictions)
         model.compile(optimizer=optimizers.Adam(self.learning_rate),
                             loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
         model.summary()
@@ -143,7 +142,6 @@ class DeepQNetwork:
         model.summary()
         return model
 
-
     def inference(self, state):
         if self.lidar_to_image:
             state = state.reshape((-1, self.image_width, self.image_height, self.history_length))
@@ -163,6 +161,17 @@ class DeepQNetwork:
 
         return np.asarray(self.behavior_predict(state)).argmax(axis=1)
 
+    # def inference(self, state):
+    #     if self.lidar_to_image:
+    #         state = state.reshape((-1, self.image_width, self.image_height, self.history_length))
+    #     elif self.add_velocity:
+    #         state[0] = state[0].reshape((-1, self.state_size, self.history_length))
+    #         state[1] = state[1].reshape((-1, self.history_length))
+    #     else:
+    #         state = state.reshape((-1, self.state_size, self.history_length))
+
+    #     return np.asarray(self.behavior_predict(state)).argmax(axis=1)
+
     def train(self, batch, step_number):
         if self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
@@ -177,13 +186,12 @@ class DeepQNetwork:
             new_states_yaw = np.asarray([sample.new_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
             actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
             rewards = np.asarray([sample.reward for sample in batch])
-
+            is_terminal = np.asarray([sample.terminal for sample in batch])
             # Stop action delete
             for i in range(len(actions)):
                 if actions[i] == 6: 
                     rewards[i] -= 0.5
 
-            is_terminal = np.asarray([sample.terminal for sample in batch])
             predicted = self.target_predict({
                 "lidar": new_states_lidar,
                 "velocity": new_states_velocity,
@@ -246,6 +254,53 @@ class DeepQNetwork:
         if step_number % self.target_model_update_freq == 0:
             self.behavior_net.set_weights(self.target_net.get_weights())
         return loss
+
+    # def train(self, batch, step_number):
+    #     if self.add_velocity:
+    #         old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
+    #         old_states_acc = np.asarray([sample.old_state.get_data()[1] for sample in batch])
+    #         new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
+    #         new_states_acc = np.asarray([sample.new_state.get_data()[1] for sample in batch])
+    #         actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
+    #         rewards = np.asarray([sample.reward for sample in batch])
+    #         is_terminal = np.asarray([sample.terminal for sample in batch])
+
+    #         predicted = self.target_predict({'lidar': new_states_lidar, 'acc': new_states_acc})
+    #         q_new_state = np.max(predicted, axis=1)
+    #         target_q = rewards + (self.gamma * q_new_state * (1 - is_terminal))
+    #         one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)
+    #         loss = self.gradient_train({'lidar': old_states_lidar, 'acc': old_states_acc}, target_q, one_hot_actions)
+    #     else:
+    #         old_states = np.asarray([sample.old_state.get_data() for sample in batch])
+    #         new_states = np.asarray([sample.new_state.get_data() for sample in batch])
+    #         actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
+    #         rewards = np.asarray([sample.reward for sample in batch])
+    #         is_terminal = np.asarray([sample.terminal for sample in batch])
+
+    #     # Stop action delete
+    #         for i in range(len(actions)):
+    #             if actions[i] == 6: 
+    #                 rewards[i] -= 0.5
+             
+    #         q_new_state = np.max(self.target_predict(new_states), axis=1)
+    #         target_q = rewards + (self.gamma * q_new_state * (1 - is_terminal))
+    #         one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)
+    #         loss = self.gradient_train(old_states, target_q, one_hot_actions)
+
+    #     if step_number % self.target_model_update_freq == 0:
+    #         self.behavior_net.set_weights(self.target_net.get_weights())
+
+
+    #     return loss
+    def save_episode_reward(self, episode, reward):
+        reward_log_path = "episode_rewards_sanitycheck.csv"
+        if episode == 0 and not os.path.exists(reward_log_path):
+            with open(reward_log_path, mode='w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(["episode", "reward"])
+        with open(reward_log_path, mode='a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([episode, reward])
 
     @tf.function
     def target_predict(self, state):
