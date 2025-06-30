@@ -152,17 +152,6 @@ class DeepQNetwork:
         elif self.add_velocity and self.add_pose:
             state[0] = state[0].reshape((-1, self.state_size, self.history_length))
             state[1] = state[1].reshape((-1, self.history_length))
-            # dummy = np.zeros_like(state[1])  # shape = (batch_size, history_length)
-            # state[2] = dummy
-            # state[3] = dummy
-            # state[4] = dummy
-            # state = {
-            #     "lidar": state[0],
-            #     "velocity": state[1],
-            #     "x": state[2],
-            #     "y": state[3],
-            #     "yaw": state[4]
-            # }
             state[2] = state[2].reshape((-1, self.history_length))
             state[3] = state[3].reshape((-1, self.history_length))
             state[4] = state[4].reshape((-1, self.history_length))
@@ -190,18 +179,11 @@ class DeepQNetwork:
         if self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            # dummy = np.zeros_like(old_states_velocity)
-            # old_states_x = dummy
-            # old_states_y = dummy
-            # old_states_yaw = dummy
             old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
             old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
             old_states_yaw = np.asarray([sample.old_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
             new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
             new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            # new_states_x = dummy
-            # new_states_y = dummy
-            # new_states_yaw = dummy
             new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
             new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
             new_states_yaw = np.asarray([sample.new_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
@@ -279,18 +261,18 @@ class DeepQNetwork:
     # def train(self, batch, step_number):
     #     if self.add_velocity:
     #         old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
-    #         old_states_acc = np.asarray([sample.old_state.get_data()[1] for sample in batch])
+    #         old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch])
     #         new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
-    #         new_states_acc = np.asarray([sample.new_state.get_data()[1] for sample in batch])
+    #         new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch])
     #         actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
     #         rewards = np.asarray([sample.reward for sample in batch])
     #         is_terminal = np.asarray([sample.terminal for sample in batch])
 
-    #         predicted = self.target_predict({'lidar': new_states_lidar, 'acc': new_states_acc})
+    #         predicted = self.target_predict({'lidar': new_states_lidar, 'velocity': new_states_velocity})
     #         q_new_state = np.max(predicted, axis=1)
     #         target_q = rewards + (self.gamma * q_new_state * (1 - is_terminal))
     #         one_hot_actions = tf.keras.utils.to_categorical(actions, self.num_actions)
-    #         loss = self.gradient_train({'lidar': old_states_lidar, 'acc': old_states_acc}, target_q, one_hot_actions)
+    #         loss = self.gradient_train({'lidar': old_states_lidar, 'velocity': old_states_velocity}, target_q, one_hot_actions)
     #     else:
     #         old_states = np.asarray([sample.old_state.get_data() for sample in batch])
     #         new_states = np.asarray([sample.new_state.get_data() for sample in batch])
@@ -313,6 +295,7 @@ class DeepQNetwork:
 
 
     #     return loss
+    
     def save_episode_reward(self, episode, reward):
         reward_log_path = "episode_rewards_sanitycheck.csv"
         if episode == 0 and not os.path.exists(reward_log_path):
