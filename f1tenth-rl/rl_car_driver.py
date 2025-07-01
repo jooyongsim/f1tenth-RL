@@ -72,7 +72,7 @@ parser.add_argument("--env-logging", type=bool, default=False, help="log state, 
 parser.add_argument("--gamepad", type=bool, default=False, help="log state, action, reward of every step to build a dataset for later use")
 parser.add_argument("--show-monitor", type=bool, default=False, help="show a GUI with car status information")
 #pose add
-parser.add_argument("--add-pose", type=bool, default=True, help="if true, it adds the (x, y, yaw) to the state (the NN is extended)")   #pose arguement 추가
+parser.add_argument("--add-pose", type=bool, default=False, help="if true, it adds the (x, y, yaw) to the state (the NN is extended)")   #pose arguement 추가
 args = parser.parse_args()
 
 print('Arguments: ', (args))

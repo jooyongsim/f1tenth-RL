@@ -146,22 +146,21 @@ class CarEnv:
     #         current_data.append(self.sensors.get_car_linear_velocity())
     #     return current_data
 
-    # def get_state_size(self):
-    #     state_data = self.state.get_data()
-    #     if self.add_velocity and self.add_pose:
-    #         return len(state_data[0])
-    #     elif self.add_velocity:
-    #         return len(state_data[0])
-    #     else:
-    #         return len(state_data)
-
     def get_state_size(self):
+        state_data = self.state.get_data()
         if self.add_velocity and self.add_pose:
-            return len(self.state.get_data()[0])
-        if self.add_velocity:
-            return len(self.state.get_data()[0])
+            return len(state_data[0])
+        elif self.add_velocity:
+            return len(state_data[0])
         else:
-            return len(self.state.get_data())
+            return len(state_data)
+
+    # def get_state_size(self):
+    #     if self.add_velocity:
+    #         return len(self.state.get_data()[0])
+    #     else:
+    #         return len(self.state.get_data())
+
 
     def get_num_actions(self):
         return len(self.action_set)
