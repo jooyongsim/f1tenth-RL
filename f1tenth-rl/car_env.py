@@ -125,22 +125,26 @@ class CarEnv:
         self.episode_step_number = 0
         self.car_stop_count = 0
 
-    # def _get_car_state(self):
-    #     current_data = list(self.sensors.get_lidar_ranges())
-    #     if self.add_velocity and self.add_pose:
-    #         current_data.append(self.sensors.get_car_linear_velocity())
-    #         x, y, yaw = self.sensors.get_car_pose()
-    #         current_data.extend([x, y, yaw])
-    #     elif self.add_velocity:
-    #         current_data.append(self.sensors.get_car_linear_velocity())
-
-    #     return current_data
-
     def _get_car_state(self):
         current_data = list(self.sensors.get_lidar_ranges())
-        if self.add_velocity:
+        if self.add_velocity and self.add_pose:
             current_data.append(self.sensors.get_car_linear_velocity())
+            x, y, yaw = self.sensors.get_car_pose()
+            velocity = self.sensors.get_car_linear_velocity()
+            current_data.extend([x, y, yaw])
+            # print("[DEBUG] get_car_state():")
+            # print(f"    Velocity: {velocity}")
+            # print(f"    Pose x: {x}, y: {y}, yaw: {yaw}")
+        elif self.add_velocity:
+            current_data.append(self.sensors.get_car_linear_velocity())
+
         return current_data
+
+    # def _get_car_state(self):
+    #     current_data = list(self.sensors.get_lidar_ranges())
+    #     if self.add_velocity:
+    #         current_data.append(self.sensors.get_car_linear_velocity())
+    #     return current_data
 
     # def get_state_size(self):
     #     state_data = self.state.get_data()
@@ -152,6 +156,8 @@ class CarEnv:
     #         return len(state_data)
 
     def get_state_size(self):
+        if self.add_velocity and self.add_pose:
+            return len(self.state.get_data()[0])
         if self.add_velocity:
             return len(self.state.get_data()[0])
         else:
