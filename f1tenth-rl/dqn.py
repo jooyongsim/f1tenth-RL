@@ -95,8 +95,8 @@ class DeepQNetwork:
     def __build_cnn1D_plus_velocity_and_pose(self):
         inputs = tf.keras.Input(shape=(self.state_size, self.history_length), name="lidar")
         input_velocity = tf.keras.Input(shape=((self.history_length)), name="velocity")
-        input_x = tf.keras.Input(shape=((self.history_length)), name="x")
-        input_y = tf.keras.Input(shape=((self.history_length)), name="y")
+        # input_x = tf.keras.Input(shape=((self.history_length)), name="x")
+        # input_y = tf.keras.Input(shape=((self.history_length)), name="y")
         input_yaw = tf.keras.Input(shape=((self.history_length)), name="yaw")
         x = layers.Conv1D(filters=16, kernel_size=4, strides=2, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(inputs)
         x = layers.Conv1D(filters=32, kernel_size=2, strides=1, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
@@ -106,7 +106,8 @@ class DeepQNetwork:
         # x = layers.concatenate([x, input_velocity, input_x, input_y, input_yaw])
         x = layers.Dense(64, activation='relu', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
         predictions = layers.Dense(self.num_actions, activation='linear', kernel_initializer=initializers.VarianceScaling(scale=2.))(x)
-        model = tf.keras.Model(inputs=[inputs, input_velocity, input_x, input_y, input_yaw], outputs=predictions)
+        model = tf.keras.Model(inputs=[inputs, input_velocity, input_yaw], outputs=predictions)
+        # model = tf.keras.Model(inputs=[inputs, input_velocity, input_x, input_y, input_yaw], outputs=predictions)
         model.compile(optimizer=optimizers.Adam(self.learning_rate),
                             loss=losses.Huber()) #loss to be removed. It is needed in the bugged version installed on Jetson
         model.summary()
@@ -153,8 +154,8 @@ class DeepQNetwork:
             state[0] = state[0].reshape((-1, self.state_size, self.history_length))
             state[1] = state[1].reshape((-1, self.history_length))
             state[2] = state[2].reshape((-1, self.history_length))
-            state[3] = state[3].reshape((-1, self.history_length))
-            state[4] = state[4].reshape((-1, self.history_length))
+            # state[3] = state[3].reshape((-1, self.history_length))
+            # state[4] = state[4].reshape((-1, self.history_length))
 
         elif self.add_velocity:
             state[0] = state[0].reshape((-1, self.state_size, self.history_length))
@@ -179,14 +180,14 @@ class DeepQNetwork:
         if self.add_velocity and self.add_pose:
             old_states_lidar = np.asarray([sample.old_state.get_data()[0] for sample in batch])
             old_states_velocity = np.asarray([sample.old_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
-            old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
-            old_states_yaw = np.asarray([sample.old_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
+            # old_states_x = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            # old_states_y = np.asarray([sample.old_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
+            old_states_yaw = np.asarray([sample.old_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
             new_states_lidar = np.asarray([sample.new_state.get_data()[0] for sample in batch])
             new_states_velocity = np.asarray([sample.new_state.get_data()[1] for sample in batch]).reshape((-1, self.history_length))
-            new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
-            new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
-            new_states_yaw = np.asarray([sample.new_state.get_data()[4] for sample in batch]).reshape((-1, self.history_length))
+            # new_states_x = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
+            # new_states_y = np.asarray([sample.new_state.get_data()[3] for sample in batch]).reshape((-1, self.history_length))
+            new_states_yaw = np.asarray([sample.new_state.get_data()[2] for sample in batch]).reshape((-1, self.history_length))
             actions = np.asarray([sample.action[0] if isinstance(sample.action, (list, np.ndarray)) else sample.action for sample in batch])
             rewards = np.asarray([sample.reward for sample in batch])
             is_terminal = np.asarray([sample.terminal for sample in batch])
@@ -198,8 +199,8 @@ class DeepQNetwork:
             predicted = self.target_predict({
                 "lidar": new_states_lidar,
                 "velocity": new_states_velocity,
-                "x": new_states_x,
-                "y": new_states_y,
+                # "x": new_states_x,
+                # "y": new_states_y,
                 "yaw": new_states_yaw
             })
             
@@ -209,8 +210,8 @@ class DeepQNetwork:
             loss = self.gradient_train({
                 "lidar": old_states_lidar,
                 "velocity": old_states_velocity,
-                "x": old_states_x,
-                "y": old_states_y,
+                # "x": old_states_x,
+                # "y": old_states_y,
                 "yaw": old_states_yaw
             }, target_q, one_hot_actions)
 
