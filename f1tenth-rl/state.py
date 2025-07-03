@@ -67,18 +67,18 @@ class State:
             # print(f"    pose yaw: {state[0][4] if len(state[0]) > 4 else '❌ MISSING'}")
             lidar_state = [state[0][0], state[1][0]] 
             velocity_state = [state[0][1], state[1][1]]
-            # x_state = [state[0][2], state[1][2]]
-            # y_state = [state[0][3], state[1][3]]
-            yaw_state = [state[0][2], state[1][2]]
+            x_state = [state[0][2], state[1][2]]
+            y_state = [state[0][3], state[1][3]]
+            yaw_state = [state[0][4], state[1][4]]
 
             lidar_array = np.asarray(lidar_state).reshape((len(lidar_state[0]), State.history_length))
             velocity_array = np.asarray(velocity_state).reshape((-1, 1, State.history_length))
-            # x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
-            # y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
+            x_array = np.asarray(x_state).reshape((-1, 1, State.history_length))
+            y_array = np.asarray(y_state).reshape((-1, 1, State.history_length))
             yaw_array = np.asarray(yaw_state).reshape((-1, 1, State.history_length))
             
-            # return [lidar_array, velocity_array, x_array, y_array, yaw_array]
-            return [lidar_array, velocity_array, yaw_array]
+            return [lidar_array, velocity_array, x_array, y_array, yaw_array]
+            # return [lidar_array, velocity_array, x_array, yaw_array]
             
         elif State.add_velocity:
             lidar_state = [state[0][0], state[1][0]]
@@ -110,11 +110,11 @@ class State:
         if State.add_velocity and State.add_pose:
             lidar_data = data[:-4]
             velocity_value = data[-4] 
-            # x_value = data[-3] / 10.0
-            # y_value = data[-2] / 20.0
+            x_value = data[-3] / 10.0
+            y_value = data[-2] / 20.0
             yaw_value = data[-1] / np.pi
             data = lidar_data 
-            # return (lidar_data, velocity_value, x_value, y_value, yaw_value)
+            return (lidar_data, velocity_value, x_value, y_value, yaw_value)
 
         elif State.add_velocity:
             lidar_data, velocity_value = data[:-1], data[-1]
@@ -158,7 +158,7 @@ class State:
             data = [round(x, State.lidar_float_cut) for x in data]
 
         if State.add_velocity and State.add_pose:
-            return(data, velocity_value, yaw_value)
+            return(data, velocity_value, x_value, yaw_value)
 
             # return(data,velocity_value, x_value, y_value, yaw_value)
         if State.add_velocity:
